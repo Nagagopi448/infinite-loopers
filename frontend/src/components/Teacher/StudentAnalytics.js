@@ -4,11 +4,7 @@ import {
   TrendingUp, 
   TrendingDown,
   Award,
-  Clock,
-  BookOpen,
   BarChart3,
-  PieChart,
-  Filter,
   Download
 } from 'lucide-react';
 import './StudentAnalytics.css';
@@ -121,6 +117,44 @@ const StudentAnalytics = () => {
     return 'poor';
   };
 
+  const handleExportReport = () => {
+    // Prepare CSV data
+    const headers = ['Student Name', 'Email', 'Course', 'Enrolled Date', 'Last Active', 'Progress (%)', 'Completed Assignments', 'Total Assignments', 'Average Grade (%)', 'Time Spent (hours)', 'Status'];
+    
+    const rows = filteredStudents.map(student => [
+      student.name,
+      student.email,
+      student.course,
+      student.enrolledDate,
+      student.lastActive,
+      student.progress,
+      student.completedAssignments,
+      student.totalAssignments,
+      student.averageGrade,
+      student.timeSpent,
+      student.status
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `student_analytics_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="student-analytics">
       <div className="analytics-header">
@@ -140,7 +174,7 @@ const StudentAnalytics = () => {
             <option value="semester">This Semester</option>
           </select>
           
-          <button className="export-btn">
+          <button className="export-btn" onClick={handleExportReport}>
             <Download size={20} />
             Export Report
           </button>

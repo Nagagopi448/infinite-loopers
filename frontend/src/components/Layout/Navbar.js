@@ -154,7 +154,7 @@ const Navbar = () => {
       <div className="navbar-container">
         <div className="navbar-brand">
           <GraduationCap size={32} />
-          <span>LMS</span>
+          <span>EDUFLOW</span>
         </div>
 
         <div className="navbar-links">

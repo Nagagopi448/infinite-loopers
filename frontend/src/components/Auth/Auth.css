@@ -410,8 +410,7 @@
 
 .input-group {
   position: relative;
-  display: flex;
-  align-items: center;
+  display: block;
   background: #fafafa;
   border-radius: 10px;
   border: 1.5px solid #d1d5db;
@@ -439,16 +438,14 @@
 
 .input-icon {
   position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 14px;
+  top: 15px;
   color: #9ca3af;
-  z-index: 20;
+  z-index: 100;
   transition: color 0.2s ease;
   pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 18px;
+  height: 18px;
 }
 
 .input-group.focused .input-icon {
@@ -456,8 +453,9 @@
 }
 
 .input-group input {
+  position: relative;
   width: 100%;
-  padding: 0 50px 0 48px;
+  padding: 14px 50px 14px 45px;
   border: none;
   border-radius: 10px;
   font-size: 15px;
@@ -465,9 +463,12 @@
   background: transparent;
   transition: all 0.2s ease;
   outline: none;
-  height: 100%;
+  height: 50px;
   line-height: 1.5;
   font-weight: 400;
+  display: block;
+  box-sizing: border-box;
+  z-index: 1;
 }
 
 .input-group input::placeholder {
@@ -487,9 +488,8 @@
 
 .password-toggle {
   position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 14px;
+  top: 13px;
   background: none;
   border: none;
   color: #6b7280;
@@ -497,10 +497,12 @@
   padding: 6px;
   border-radius: 6px;
   transition: all 0.2s ease;
-  z-index: 20;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
 .password-toggle:hover {
