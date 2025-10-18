@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useData } from '../../contexts/DataContext';
 import { 
   FileText, 
   Upload, 
@@ -9,30 +10,64 @@ import {
   Calendar,
   User,
   BookOpen,
-  Send
+  Send,
+  RefreshCw
 } from 'lucide-react';
 import './AssignmentSubmission.css';
 
 const AssignmentSubmission = () => {
+  const { getAssignmentsForUser, refreshData } = useData();
   const [assignments, setAssignments] = useState([]);
   const [filter, setFilter] = useState('all');
   const [selectedFile, setSelectedFile] = useState(null);
   const [submissionText, setSubmissionText] = useState('');
   const [submittingId, setSubmittingId] = useState(null);
 
+  // Load assignments from DataContext
   useEffect(() => {
-    // Mock assignments data
-    const mockAssignments = [
-      {
-        id: 1,
-        title: 'React Components Project',
-        description: 'Create a functional React application with multiple components, props, and state management.',
-        course: 'Web Development',
-        instructor: 'Dr. Smith',
-        dueDate: '2024-10-25T23:59:00Z',
-        maxGrade: 100,
-        status: 'pending',
-        submittedAt: null,
+    loadAssignments();
+  }, []);
+
+  const loadAssignments = () => {
+    const userAssignments = getAssignmentsForUser();
+    console.log('Loading assignments for student:', userAssignments);
+    
+    // Convert to format expected by component
+    const formattedAssignments = userAssignments.map(assignment => ({
+      id: assignment._id,
+      title: assignment.title,
+      description: assignment.description || 'No description provided',
+      course: assignment.courseName || 'Course',
+      instructor: assignment.teacherName || 'Instructor',
+      dueDate: assignment.dueDate || new Date().toISOString(),
+      maxGrade: assignment.maxGrade || 100,
+      status: assignment.status || 'pending',
+      submittedAt: assignment.submittedAt || null,
+      grade: assignment.grade || null,
+      feedback: assignment.feedback || null,
+      attachments: assignment.attachments || [],
+      allowedFormats: assignment.allowedFormats || ['.pdf', '.doc', '.docx', '.zip']
+    }));
+    
+    setAssignments(formattedAssignments);
+  };
+
+  // Fallback to mock data if no real assignments
+  useEffect(() => {
+    const userAssignments = getAssignmentsForUser();
+    if (userAssignments.length === 0 && assignments.length === 0) {
+      // Use mock data if no assignments from teacher
+      const mockAssignments = [
+        {
+          id: 1,
+          title: 'React Components Project',
+          description: 'Create a functional React application with multiple components, props, and state management.',
+          course: 'Web Development',
+          instructor: 'Dr. Smith',
+          dueDate: '2024-10-25T23:59:00Z',
+          maxGrade: 100,
+          status: 'pending',
+          submittedAt: null,
         grade: null,
         feedback: null,
         attachments: ['project-requirements.pdf'],
@@ -84,8 +119,9 @@ const AssignmentSubmission = () => {
         allowedFormats: ['.fig', '.pdf', '.png', '.jpg']
       }
     ];
-    setAssignments(mockAssignments);
-  }, []);
+      setAssignments(mockAssignments);
+    }
+  }, [getAssignmentsForUser, assignments.length]);
 
   const filteredAssignments = assignments.filter(assignment => {
     if (filter === 'all') return true;
@@ -170,6 +206,17 @@ const AssignmentSubmission = () => {
         </div>
         
         <div className="submission-filters">
+          <button 
+            onClick={() => {
+              refreshData();
+              loadAssignments();
+              alert('Assignments refreshed! New assignments from teachers should now appear.');
+            }}
+            className="refresh-btn"
+            style={{ marginRight: '12px', padding: '8px 16px', background: '#A4C2A5', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}
+          >
+            🔄 Refresh Assignments
+          </button>
           <select 
             value={filter} 
             onChange={(e) => setFilter(e.target.value)}

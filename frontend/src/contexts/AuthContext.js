@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [logout, API_BASE_URL]);
+  }, [logout]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -75,9 +75,18 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Check if it's a network error
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+        return {
+          success: false,
+          error: 'Cannot connect to server. Please make sure the backend server is running on http://localhost:5000'
+        };
+      }
+      
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Login failed. Please try again.' 
+        error: error.response?.data?.message || 'Invalid email or password. Please try again.' 
       };
     }
   };
@@ -102,6 +111,14 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Registration error:', error);
+      
+      // Check if it's a network error
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+        return {
+          success: false,
+          error: 'Cannot connect to server. Please make sure the backend server is running on http://localhost:5000'
+        };
+      }
       
       // Handle validation errors
       if (error.response?.data?.errors) {

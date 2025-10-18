@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Mail, Lock, LogIn, Eye, EyeOff, Sparkles, GraduationCap, BookOpen, Users, User, UserPlus } from 'lucide-react';
 import './Auth.css';
@@ -209,7 +209,7 @@ const Auth = () => {
                   Full Name
                 </label>
                 <div className={`input-group ${focusedField === 'name' ? 'focused' : ''} ${formData.name ? 'has-value' : ''}`}>
-                  <User className="input-icon" size={20} />
+                  <User className="input-icon" size={18} strokeWidth={2} />
                   <input
                     type="text"
                     id="name"
@@ -221,7 +221,6 @@ const Auth = () => {
                     placeholder="Enter your full name"
                     required={!isLogin}
                   />
-                  <div className="input-highlight"></div>
                 </div>
               </div>
             )}
@@ -231,7 +230,7 @@ const Auth = () => {
                 Email Address
               </label>
               <div className={`input-group ${focusedField === 'email' ? 'focused' : ''} ${formData.email ? 'has-value' : ''}`}>
-                <Mail className="input-icon" size={20} />
+                <Mail className="input-icon" size={18} strokeWidth={2} />
                 <input
                   type="email"
                   id="email"
@@ -240,10 +239,9 @@ const Auth = () => {
                   onChange={handleChange}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField('')}
-                  placeholder="Enter your email"
+                  placeholder="Enter your email address"
                   required
                 />
-                <div className="input-highlight"></div>
               </div>
             </div>
 
@@ -252,7 +250,7 @@ const Auth = () => {
                 Password
               </label>
               <div className={`input-group ${focusedField === 'password' ? 'focused' : ''} ${formData.password ? 'has-value' : ''}`}>
-                <Lock className="input-icon" size={20} />
+                <Lock className="input-icon" size={18} strokeWidth={2} />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
@@ -268,10 +266,10 @@ const Auth = () => {
                   type="button"
                   className="password-toggle"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
                 </button>
-                <div className="input-highlight"></div>
               </div>
               {!isLogin && (
                 <div className="password-requirements">
@@ -287,7 +285,7 @@ const Auth = () => {
                   Confirm Password
                 </label>
                 <div className={`input-group ${focusedField === 'confirmPassword' ? 'focused' : ''} ${formData.confirmPassword ? 'has-value' : ''}`}>
-                  <Lock className="input-icon" size={20} />
+                  <Lock className="input-icon" size={18} strokeWidth={2} />
                   <input
                     type="password"
                     id="confirmPassword"
@@ -296,10 +294,9 @@ const Auth = () => {
                     onChange={handleChange}
                     onFocus={() => setFocusedField('confirmPassword')}
                     onBlur={() => setFocusedField('')}
-                    placeholder="Confirm your password"
+                    placeholder="Re-enter your password"
                     required={!isLogin}
                   />
-                  <div className="input-highlight"></div>
                 </div>
               </div>
             )}
@@ -337,7 +334,7 @@ const Auth = () => {
 
             {isLogin && (
               <div className="forgot-password">
-                <button type="button" className="forgot-link">Forgot your password?</button>
+                <Link to="/forgot-password" className="forgot-link">Forgot your password?</Link>
               </div>
             )}
 

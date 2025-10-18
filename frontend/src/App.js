@@ -4,12 +4,16 @@ import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { useAuth } from './contexts/AuthContext';
 import Auth from './components/Auth/Auth';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 import Dashboard from './components/Dashboard/Dashboard';
 import CourseList from './components/Courses/CourseList';
 import CourseDetail from './components/Courses/CourseDetail';
-import StudentCourseList from './components/Student/StudentCourseList';
-import AssignmentSubmission from './components/Student/AssignmentSubmission';
 import Achievements from './components/Student/Achievements';
+import Profile from './components/Student/Profile';
+import AccountSettings from './components/Student/AccountSettings';
+import Forums from './components/Student/Forums';
+import HelpSupport from './components/Student/HelpSupport';
 import CreateCourse from './components/Courses/CreateCourse';
 import AssignmentList from './components/Assignments/AssignmentList';
 import CreateAssignment from './components/Assignments/CreateAssignment';
@@ -49,6 +53,16 @@ function AppContent() {
           <Route path="/register" element={
             <PublicRoute>
               <Auth />
+            </PublicRoute>
+          } />
+          <Route path="/forgot-password" element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          } />
+          <Route path="/reset-password/:token" element={
+            <PublicRoute>
+              <ResetPassword />
             </PublicRoute>
           } />
           <Route path="/dashboard" element={
@@ -121,26 +135,17 @@ function AppContent() {
           } />
           <Route path="/profile" element={
             <ProtectedRoute>
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <h2>My Profile</h2>
-                <p>Profile management page coming soon!</p>
-              </div>
+              <Profile />
             </ProtectedRoute>
           } />
           <Route path="/settings" element={
             <ProtectedRoute>
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <h2>Account Settings</h2>
-                <p>Settings page coming soon!</p>
-              </div>
+              <AccountSettings />
             </ProtectedRoute>
           } />
           <Route path="/forums" element={
             <ProtectedRoute>
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <h2>Discussion Forums</h2>
-                <p>Forums page coming soon!</p>
-              </div>
+              <Forums />
             </ProtectedRoute>
           } />
           <Route path="/certificates" element={
@@ -153,10 +158,7 @@ function AppContent() {
           } />
           <Route path="/help" element={
             <ProtectedRoute>
-              <div style={{ padding: '40px', textAlign: 'center' }}>
-                <h2>Help & Support</h2>
-                <p>Help page coming soon!</p>
-              </div>
+              <HelpSupport />
             </ProtectedRoute>
           } />
           <Route path="/analytics" element={

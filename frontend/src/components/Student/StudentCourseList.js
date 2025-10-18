@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,7 +6,6 @@ import {
   BookOpen, 
   Users, 
   Clock,
-  CheckCircle,
   Plus,
   Star
 } from 'lucide-react';
@@ -20,83 +19,24 @@ const StudentCourseList = () => {
     isEnrolledInCourse,
     updateProgress,
     enrollments,
-    reloadData 
+    reloadData,
+    refreshData
   } = useData();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Initialize some default courses if none exist
-    initializeDefaultCourses();
-    // Simulate loading delay
-    setTimeout(() => setLoading(false), 300);
-  }, []);
-
-  const initializeDefaultCourses = () => {
+  // Remove demo course creation - only show teacher-created courses
+  const initializeData = useCallback(() => {
     const allCourses = getCoursesForUser();
-    console.log('Current available courses:', allCourses);
-    
-    // If no courses exist, create some default ones
-    if (allCourses.length === 0) {
-      console.log('No courses found, creating default courses...');
-      
-      // Simulate teacher creating courses by directly adding to localStorage
-      const defaultCourses = [
-        {
-          _id: `course_${Date.now()}_1`,
-          title: 'Introduction to Web Development',
-          description: 'Learn HTML, CSS, JavaScript and React from scratch',
-          category: 'programming',
-          level: 'beginner',
-          duration: '8 weeks',
-          maxStudents: 30,
-          teacherId: 'teacher_demo_1',
-          teacherName: 'Prof. John Smith',
-          createdAt: new Date().toISOString(),
-          enrolledStudents: [],
-          published: true
-        },
-        {
-          _id: `course_${Date.now()}_2`,
-          title: 'Advanced JavaScript',
-          description: 'Master ES6+, async programming, and modern JavaScript patterns',
-          category: 'programming',
-          level: 'advanced',
-          duration: '6 weeks',
-          maxStudents: 25,
-          teacherId: 'teacher_demo_2',
-          teacherName: 'Dr. Sarah Johnson',
-          createdAt: new Date().toISOString(),
-          enrolledStudents: [],
-          published: true
-        },
-        {
-          _id: `course_${Date.now()}_3`,
-          title: 'React Development',
-          description: 'Build modern web applications with React and Redux',
-          category: 'programming',
-          level: 'intermediate',
-          duration: '10 weeks',
-          maxStudents: 20,
-          teacherId: 'teacher_demo_1',
-          teacherName: 'Prof. John Smith',
-          createdAt: new Date().toISOString(),
-          enrolledStudents: [],
-          published: true
-        }
-      ];
-      
-      // Save directly to localStorage to simulate teacher-created courses
-      localStorage.setItem('sharedCourses', JSON.stringify(defaultCourses));
-      console.log('Default courses created:', defaultCourses);
-      
-      // Reload data to refresh the context
-      reloadData();
-    }
-  };
+    console.log('Current available courses from teachers:', allCourses);
+  }, [getCoursesForUser]);
 
-  // Force re-render when enrollments change
-  const [renderKey, setRenderKey] = useState(0);
+  useEffect(() => {
+    initializeData();
+    setLoading(false);
+  }, [initializeData]);
+
   const [localEnrollments, setLocalEnrollments] = useState([]);
+  const [enrollingCourseId, setEnrollingCourseId] = useState(null);
   
   // Update local enrollments when context changes
   useEffect(() => {
@@ -135,80 +75,77 @@ const StudentCourseList = () => {
   };
   
   const enrolledCourses = getEnrolledCoursesLocal(); // Student's enrolled courses
-  
-  console.log('StudentCourseList render:', renderKey);
-  console.log('- Available courses:', availableCourses.length);
-  console.log('- Enrolled courses:', enrolledCourses.length);
-  console.log('- Current user:', user);
-  console.log('- Local enrollments:', localEnrollments.length);
-  
-  // Update render key when enrollments change
-  useEffect(() => {
-    setRenderKey(prev => prev + 1);
-  }, [enrollments.length, localEnrollments.length]);
 
-  const handleEnroll = (courseId) => {
-    console.log('Attempting to enroll in course:', courseId);
-    console.log('Current user:', user);
-    console.log('Available courses:', availableCourses);
-    console.log('Current enrollments:', enrollments);
+  const handleEnroll = async (courseId) => {
+    if (enrollingCourseId) return; // Prevent double-click
     
-    const success = enrollInCourse(courseId);
-    console.log('Enrollment result:', success);
+    setEnrollingCourseId(courseId);
     
-    if (success) {
-      // Initialize progress for the newly enrolled course
-      updateProgress(courseId, {
-        progress: 0,
-        completedLessons: 0,
-        totalLessons: 10, // Default total lessons
-        lastAccessed: new Date().toISOString()
-      });
+    try {
+      const success = enrollInCourse(courseId);
       
-      // Immediately update local state for instant UI feedback
-      const newEnrollment = {
-        _id: `enrollment_${Date.now()}`,
-        studentId: user.id || user._id || user.email,
-        studentName: user.name,
-        studentEmail: user.email,
-        courseId,
-        enrolledAt: new Date().toISOString(),
-        progress: 0,
-        completedLessons: 0,
-        totalLessons: 10
-      };
-      
-      setLocalEnrollments(prev => [...prev, newEnrollment]);
-      
-      alert('Successfully enrolled in course!');
-      // Force a re-render by updating the render key
-      setRenderKey(prev => prev + 1);
-      // Also reload data to ensure context is updated
-      reloadData();
-      
-      // Force component re-render after a short delay
-      setTimeout(() => {
-        setRenderKey(prev => prev + 1);
-        // Also force a complete re-evaluation
-        setLocalEnrollments(current => [...current]);
-      }, 100);
-    } else {
-      alert('Already enrolled in this course or enrollment failed.');
+      if (success) {
+        // Initialize progress
+        updateProgress(courseId, {
+          progress: 0,
+          completedLessons: 0,
+          totalLessons: 10,
+          lastAccessed: new Date().toISOString()
+        });
+        
+        // Update local state immediately
+        const newEnrollment = {
+          _id: `enrollment_${Date.now()}`,
+          studentId: user.id || user._id || user.email,
+          studentName: user.name,
+          studentEmail: user.email,
+          courseId,
+          enrolledAt: new Date().toISOString(),
+          progress: 0,
+          completedLessons: 0,
+          totalLessons: 10
+        };
+        
+        setLocalEnrollments(prev => [...prev, newEnrollment]);
+        alert('✓ Successfully enrolled in course!');
+      } else {
+        alert('Already enrolled in this course.');
+      }
+    } finally {
+      setTimeout(() => setEnrollingCourseId(null), 500);
     }
   };
 
   const simulateProgress = (courseId) => {
-    const currentProgress = getProgressPercentage({ progress: { completedLessons: 0, totalLessons: 10 } });
-    const newCompletedLessons = Math.min(10, Math.floor(Math.random() * 3) + 1); // Random 1-3 lessons
+    // Get the current enrolled course to check existing progress
+    const enrolledCourse = enrolledCourses.find(course => course._id === courseId);
+    const currentCompletedLessons = enrolledCourse?.progress?.completedLessons || 0;
+    const totalLessons = enrolledCourse?.progress?.totalLessons || 10;
+    
+    // Add 1-3 more lessons to current progress
+    const additionalLessons = Math.floor(Math.random() * 3) + 1;
+    const newCompletedLessons = Math.min(totalLessons, currentCompletedLessons + additionalLessons);
+    const newProgressPercent = Math.round((newCompletedLessons / totalLessons) * 100);
+    
+    console.log('Updating progress:', {
+      courseId,
+      currentCompletedLessons,
+      additionalLessons,
+      newCompletedLessons,
+      totalLessons,
+      newProgressPercent
+    });
     
     updateProgress(courseId, {
       completedLessons: newCompletedLessons,
-      totalLessons: 10,
-      progress: Math.round((newCompletedLessons / 10) * 100),
+      totalLessons: totalLessons,
+      progress: newProgressPercent,
       lastAccessed: new Date().toISOString()
     });
     
-    alert(`Progress updated! Completed ${newCompletedLessons} lessons.`);
+    // Progress updated - state will trigger re-render
+    
+    alert(`Progress updated! Completed ${newCompletedLessons} of ${totalLessons} lessons (${newProgressPercent}%).`);
   };
 
   const getProgressPercentage = (course) => {
@@ -273,7 +210,7 @@ const StudentCourseList = () => {
   }
 
   return (
-    <div className="student-courses" key={`student-courses-${renderKey}-${enrolledCourses.length}`}>
+    <div className="student-courses" key={`student-courses-${enrolledCourses.length}`}>
       {/* Enrolled Courses Section */}
       {enrolledCourses.length > 0 && (
         <div className="enrolled-courses-section">
@@ -331,17 +268,17 @@ const StudentCourseList = () => {
                     </div>
                   </div>
                   
-                  <div className="course-actions">
+                  <div className="course-actions" style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
                     <button 
                       onClick={() => simulateProgress(course._id)}
                       className="btn btn-outline"
-                      style={{ marginRight: '8px' }}
                     >
                       Update Progress
                     </button>
                     <Link 
                       to={`/courses/${course._id}`}
                       className="btn btn-primary"
+                      style={{ textDecoration: 'none', display: 'inline-block' }}
                     >
                       Continue Learning
                     </Link>
@@ -363,6 +300,16 @@ const StudentCourseList = () => {
             </small>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={() => {
+                refreshData();
+                alert('Courses refreshed! New courses from teachers should now appear.');
+              }} 
+              className="btn btn-primary" 
+              style={{ fontSize: '14px', padding: '8px 16px' }}
+            >
+              🔄 Refresh Courses
+            </button>
             <button onClick={debugEnrollments} className="btn btn-outline" style={{ fontSize: '12px', padding: '4px 8px' }}>
               Debug Enrollments
             </button>
@@ -411,38 +358,41 @@ const StudentCourseList = () => {
                     </div>
                   </div>
                   
-                  <div className="course-actions">
+                  <div className="course-actions" style={{ width: '100%' }}>
                     {isEnrolled ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                        <span className="enrolled-status" style={{ 
+                      <button 
+                        className="btn btn-success"
+                        disabled
+                        style={{ 
+                          width: '100%',
                           background: '#dcfce7', 
                           color: '#166534', 
-                          padding: '4px 12px', 
-                          borderRadius: '20px', 
-                          fontSize: '12px', 
+                          border: '2px solid #bbf7d0',
+                          cursor: 'default',
                           fontWeight: '600'
-                        }}>
-                          ✓ Enrolled
-                        </span>
-                        <Link 
-                          to={`/courses/${course._id}`}
-                          className="btn btn-outline"
-                          style={{ textDecoration: 'none' }}
-                        >
-                          View Course
-                        </Link>
-                      </div>
+                        }}
+                      >
+                        ✓ Enrolled
+                      </button>
                     ) : (
                       <button 
                         onClick={() => handleEnroll(course._id)}
-                        className="btn btn-primary enroll-button"
+                        className="btn btn-primary"
+                        disabled={enrollingCourseId === course._id}
                         style={{ 
-                          transition: 'background-color 0.2s ease, color 0.2s ease',
-                          transform: 'none !important'
+                          width: '100%',
+                          opacity: enrollingCourseId === course._id ? 0.6 : 1,
+                          cursor: enrollingCourseId === course._id ? 'not-allowed' : 'pointer'
                         }}
                       >
-                        <Plus size={16} />
-                        Enroll Now
+                        {enrollingCourseId === course._id ? (
+                          '⏳ Enrolling...'
+                        ) : (
+                          <>
+                            <Plus size={16} style={{ marginRight: '4px' }} />
+                            Enroll Now
+                          </>
+                        )}
                       </button>
                     )}
                   </div>

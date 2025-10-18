@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const DataContext = createContext();
@@ -17,38 +17,57 @@ export const DataProvider = ({ children }) => {
   const [assignments, setAssignments] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [progress, setProgress] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
-  // Initialize data from localStorage
+  // Use refs to store current values for beforeunload handler
+  const currentDataRef = useRef({ courses: [], assignments: [], enrollments: [], progress: {} });
+  
+  // Update refs when state changes
   useEffect(() => {
-    console.log('DataContext initializing...');
-    loadData();
-    
-    // Add a small delay to ensure all data is loaded
-    setTimeout(() => {
-      console.log('DataContext initialization complete');
-      console.log('Final state - Courses:', courses.length, 'Enrollments:', enrollments.length);
-    }, 100);
-    
-    // Add beforeunload event to save data before page refresh/close
-    const handleBeforeUnload = () => {
-      console.log('Page unloading - saving current data...');
-      // Force save current state to localStorage
-      if (courses.length > 0) saveData('sharedCourses', courses);
-      if (enrollments.length > 0) saveData('studentEnrollments', enrollments);
-      if (assignments.length > 0) saveData('sharedAssignments', assignments);
-      if (Object.keys(progress).length > 0) saveData('studentProgress', progress);
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
+    currentDataRef.current = { courses, assignments, enrollments, progress };
+  }, [courses, assignments, enrollments, progress]);
+
+  // Refresh data periodically to catch updates from other users/sessions
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      // Reload data from localStorage to catch any updates
+      const storedCourses = JSON.parse(localStorage.getItem('sharedCourses') || '[]');
+      const storedAssignments = JSON.parse(localStorage.getItem('sharedAssignments') || '[]');
+      
+      // Only update if data has changed
+      if (JSON.stringify(storedCourses) !== JSON.stringify(courses)) {
+        console.log('📚 Refreshing courses data...');
+        setCourses(storedCourses);
+      }
+      if (JSON.stringify(storedAssignments) !== JSON.stringify(assignments)) {
+        console.log('📝 Refreshing assignments data...');
+        setAssignments(storedAssignments);
+      }
+    }, 3000); // Check every 3 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [courses, assignments]);
+
+  // Save data to localStorage
+  const saveData = useCallback((type, data) => {
+    try {
+      const jsonData = JSON.stringify(data);
+      localStorage.setItem(type, jsonData);
+      console.log(`Saved ${type}:`, data.length || Object.keys(data).length, 'items');
+      
+      // Verify the data was saved
+      const verification = localStorage.getItem(type);
+      if (verification) {
+        console.log(`✅ ${type} successfully saved to localStorage`);
+      } else {
+        console.error(`❌ Failed to save ${type} to localStorage`);
+      }
+    } catch (error) {
+      console.error('Error saving data:', error);
+    }
   }, []);
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     try {
       const storedCourses = JSON.parse(localStorage.getItem('sharedCourses') || '[]');
       const storedAssignments = JSON.parse(localStorage.getItem('sharedAssignments') || '[]');
@@ -70,26 +89,38 @@ export const DataProvider = ({ children }) => {
     } catch (error) {
       console.error('Error loading data:', error);
     }
-  };
+  }, []);
 
-  // Save data to localStorage
-  const saveData = (type, data) => {
-    try {
-      const jsonData = JSON.stringify(data);
-      localStorage.setItem(type, jsonData);
-      console.log(`Saved ${type}:`, data.length || Object.keys(data).length, 'items');
-      
-      // Verify the data was saved
-      const verification = localStorage.getItem(type);
-      if (verification) {
-        console.log(`✅ ${type} successfully saved to localStorage`);
-      } else {
-        console.error(`❌ Failed to save ${type} to localStorage`);
-      }
-    } catch (error) {
-      console.error('Error saving data:', error);
-    }
-  };
+  // Initialize data from localStorage
+  useEffect(() => {
+    console.log('DataContext initializing...');
+    loadData();
+    
+    // Add a small delay to ensure all data is loaded
+    setTimeout(() => {
+      console.log('DataContext initialization complete');
+      const { courses: currentCourses, enrollments: currentEnrollments } = currentDataRef.current;
+      console.log('Final state - Courses:', currentCourses.length, 'Enrollments:', currentEnrollments.length);
+    }, 100);
+    
+    // Add beforeunload event to save data before page refresh/close
+    const handleBeforeUnload = () => {
+      console.log('Page unloading - saving current data...');
+      // Force save current state to localStorage using ref values
+      const { courses: currentCourses, assignments: currentAssignments, enrollments: currentEnrollments, progress: currentProgress } = currentDataRef.current;
+      if (currentCourses.length > 0) saveData('sharedCourses', currentCourses);
+      if (currentEnrollments.length > 0) saveData('studentEnrollments', currentEnrollments);
+      if (currentAssignments.length > 0) saveData('sharedAssignments', currentAssignments);
+      if (Object.keys(currentProgress).length > 0) saveData('studentProgress', currentProgress);
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [loadData, saveData]);
 
   // Course management functions
   const addCourse = (courseData) => {
@@ -257,10 +288,15 @@ export const DataProvider = ({ children }) => {
 
   // Progress tracking functions
   const updateProgress = (courseId, progressData) => {
-    if (!user || user.role !== 'student') return;
+    if (!user || user.role !== 'student') {
+      console.log('updateProgress failed: Invalid user or not a student', { user });
+      return;
+    }
 
-    const studentId = user.id || user._id;
+    const studentId = user.id || user._id || user.email;
     const progressKey = `${studentId}_${courseId}`;
+
+    console.log('updateProgress called:', { courseId, progressData, studentId, progressKey });
 
     const updatedProgress = {
       ...progress,
@@ -271,15 +307,21 @@ export const DataProvider = ({ children }) => {
       }
     };
 
+    console.log('Updated progress object:', updatedProgress);
+
     setProgress(updatedProgress);
     saveData('studentProgress', updatedProgress);
 
     // Update enrollment progress
-    const updatedEnrollments = enrollments.map(enrollment =>
-      enrollment.studentId === studentId && enrollment.courseId === courseId
-        ? { ...enrollment, ...progressData }
-        : enrollment
-    );
+    const updatedEnrollments = enrollments.map(enrollment => {
+      if (enrollment.studentId === studentId && enrollment.courseId === courseId) {
+        console.log('Updating enrollment progress:', enrollment._id);
+        return { ...enrollment, ...progressData };
+      }
+      return enrollment;
+    });
+
+    console.log('Updated enrollments:', updatedEnrollments);
 
     setEnrollments(updatedEnrollments);
     saveData('studentEnrollments', updatedEnrollments);
@@ -362,7 +404,6 @@ export const DataProvider = ({ children }) => {
     if (user?.role !== 'student') return null;
 
     const overallProgress = getOverallProgress();
-    const enrolledCourses = getEnrolledCourses();
     
     // Calculate learning streak (days with progress updates)
     const progressEntries = Object.values(progress);
@@ -480,6 +521,12 @@ export const DataProvider = ({ children }) => {
     return isEnrolled;
   };
 
+  // Manual refresh function that can be called by components
+  const refreshData = useCallback(() => {
+    console.log('🔄 Manually refreshing all data...');
+    loadData();
+  }, [loadData]);
+
   const value = {
     // Data
     courses,
@@ -515,8 +562,9 @@ export const DataProvider = ({ children }) => {
     // Utility functions
     loadData,
     saveData,
+    refreshData,
     
-    // Force reload data
+    // Force reload data (alias for compatibility)
     reloadData: () => {
       loadData();
     }

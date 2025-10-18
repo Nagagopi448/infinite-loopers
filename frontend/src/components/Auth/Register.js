@@ -29,21 +29,29 @@ const Register = () => {
     e.preventDefault();
     setError('');
 
-    // TEMPORARY: Use default values if fields are empty
-    const name = formData.name || 'Test User';
-    const email = formData.email || 'test@example.com';
-    const password = formData.password || 'password';
-    const confirmPassword = formData.confirmPassword || 'password';
-    const role = formData.role || 'student';
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Please fill in all required fields');
+      return;
+    }
 
-    if (password !== confirmPassword) {
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
     setLoading(true);
 
-    const registerData = { name, email, password, role };
+    const registerData = { 
+      name: formData.name, 
+      email: formData.email, 
+      password: formData.password, 
+      role: formData.role 
+    };
     const result = await register(registerData);
     
     if (result.success) {
@@ -55,26 +63,6 @@ const Register = () => {
     setLoading(false);
   };
 
-  // TEMPORARY: Quick register buttons for testing
-  const quickRegister = async (role) => {
-    setLoading(true);
-    const registerData = {
-      name: role === 'teacher' ? 'John Teacher' : 'Jane Student',
-      email: role === 'teacher' ? 'teacher@example.com' : 'student@example.com',
-      password: 'password',
-      role: role
-    };
-    
-    const result = await register(registerData);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
-    }
-    
-    setLoading(false);
-  };
 
   return (
     <div className="auth-container">
@@ -173,31 +161,6 @@ const Register = () => {
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
-
-        {/* TEMPORARY: Quick register buttons for testing */}
-        <div className="quick-register-section">
-          <p style={{ textAlign: 'center', margin: '20px 0 10px', color: '#6b7280', fontSize: '14px' }}>
-            Quick Register for Testing:
-          </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <button 
-              onClick={() => quickRegister('student')} 
-              className="auth-button" 
-              style={{ background: '#10b981', fontSize: '14px', padding: '8px 16px' }}
-              disabled={loading}
-            >
-              Register as Student
-            </button>
-            <button 
-              onClick={() => quickRegister('teacher')} 
-              className="auth-button" 
-              style={{ background: '#8b5cf6', fontSize: '14px', padding: '8px 16px' }}
-              disabled={loading}
-            >
-              Register as Teacher
-            </button>
-          </div>
-        </div>
 
         <div className="auth-footer">
           <p>

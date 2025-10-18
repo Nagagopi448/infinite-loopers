@@ -38,11 +38,13 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    // TEMPORARY: Use mock email if fields are empty
-    const email = formData.email || 'student@example.com';
-    const password = formData.password || 'password';
+    if (!formData.email || !formData.password) {
+      setError('Please enter both email and password');
+      setLoading(false);
+      return;
+    }
 
-    const result = await login(email, password);
+    const result = await login(formData.email, formData.password);
     
     if (result.success) {
       navigate('/dashboard');
@@ -53,20 +55,6 @@ const Login = () => {
     setLoading(false);
   };
 
-  // TEMPORARY: Quick login buttons for testing
-  const quickLogin = async (role) => {
-    setLoading(true);
-    const email = role === 'teacher' ? 'teacher@example.com' : 'student@example.com';
-    const result = await login(email, 'password', role);
-    
-    if (result.success) {
-      navigate('/dashboard');
-    } else {
-      setError(result.error);
-    }
-    
-    setLoading(false);
-  };
 
   return (
     <div className="auth-container">
@@ -201,7 +189,7 @@ const Login = () => {
           </div>
 
           <div className="forgot-password">
-            <Link to="#" className="forgot-link">Forgot your password?</Link>
+            <Link to="/forgot-password" className="forgot-link">Forgot your password?</Link>
           </div>
 
           <button type="submit" className={`auth-button ${loading ? 'loading' : ''}`} disabled={loading}>
@@ -213,33 +201,6 @@ const Login = () => {
             {loading && <div className="loading-spinner"></div>}
           </button>
         </form>
-
-        {/* TEMPORARY: Quick login buttons for testing */}
-        <div className="quick-login-section">
-          <div className="divider">
-            <span>Or try demo access</span>
-          </div>
-          <div className="demo-buttons">
-            <button 
-              onClick={() => quickLogin('student')} 
-              className="demo-button student" 
-              disabled={loading}
-            >
-              <Users size={16} />
-              <span>Student Demo</span>
-              <div className="demo-shine"></div>
-            </button>
-            <button 
-              onClick={() => quickLogin('teacher')} 
-              className="demo-button teacher" 
-              disabled={loading}
-            >
-              <GraduationCap size={16} />
-              <span>Teacher Demo</span>
-              <div className="demo-shine"></div>
-            </button>
-          </div>
-        </div>
 
           <div className="auth-footer">
             <p>
